@@ -9,7 +9,7 @@ import model._
 import scala.util.Try
 import com.film42.forecastioapi.extras.LocationPoint
 
-case class ForecastIO(apiKey: String, units: String = "us") {
+case class ForecastIO(apiKey: String, units: String = "si") {
 
   def forecast(apiKey: String, lat: String, lon: String, date: Date = new Date()): Try[Forecast] = {
     Try( new Forecast(apiKey, lat, lon, units, date) )
