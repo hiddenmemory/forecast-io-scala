@@ -9,10 +9,10 @@ import model._
 import scala.util.Try
 import com.film42.forecastioapi.extras.LocationPoint
 
-case class ForecastIO(apiKey: String, units: String = "si") {
+case class ForecastIO(apiKey: String, units: String = "si", exclusions: Array[String] = Array()) {
 
   def forecast(apiKey: String, lat: String, lon: String, date: Date = new Date()): Try[Forecast] = {
-    Try( new Forecast(apiKey, lat, lon, units, date) )
+    Try( new Forecast(apiKey, lat, lon, units, date, exclusions) )
   }
 
   def forecast(lat: String, lon: String, date: Date): Try[Forecast] = {
@@ -33,20 +33,28 @@ case class ForecastIO(apiKey: String, units: String = "si") {
 
 }
 
-class Forecast(apiKey: String, lat: String, lon: String, units: String, date: Date) {
+class Forecast(apiKey: String, lat: String, lon: String, units: String, date: Date, exclusions: Array[String] = Array()) {
 
   // Timestamp constructor
-  def this(apiKey: String, lat: String, lon: String, units: String, timestamp: Int) =
-    this(apiKey, lat, lon, units, new Date(timestamp * 1000L))
+  def this(apiKey: String, lat: String, lon: String, units: String, timestamp: Int, exclusions: Array[String] = Array()) =
+    this(apiKey, lat, lon, units, new Date(timestamp * 1000L), exclusions)
 
   private val forecastJson = getForecast.asJsObject
 
   private def getForecast = {
-    val ts = date.getTime / 1000
-    val u = {
-      if (date == new Date()) new URL(s"https://api.forecast.io/forecast/$apiKey/$lat,$lon?units=$units")
-      else new URL(s"https://api.forecast.io/forecast/$apiKey/$lat,$lon,$ts?units=$units")
-    }
+    val ex =
+      if( exclusions.length > 0 )
+        s"&exclude=${exclusions.toList.mkString(",")}"
+      else
+        ""
+
+    val ts =
+      if( date == new Date() )
+        "," + date.getTime / 1000
+      else
+        ""
+    val u = new URL(s"https://api.forecast.io/forecast/$apiKey/$lat,$lon$ts?units=$units$ex")
+
     val s = new Scanner(u.openStream(), "UTF-8")
     try {
       s.useDelimiter("\\A").next().asJson
