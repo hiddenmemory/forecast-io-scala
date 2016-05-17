@@ -33,7 +33,7 @@ case class ForecastIO(apiKey: String, units: String = "si", exclusions: Array[St
 
 }
 
-class Forecast(apiKey: String, lat: String, lon: String, units: String, date: Date, exclusions: Array[String] = Array()) {
+class Forecast(apiKey: String, lat: String, lon: String, units: String, date: Date, exclusions: Array[String]) {
 
   // Timestamp constructor
   def this(apiKey: String, lat: String, lon: String, units: String, timestamp: Int, exclusions: Array[String] = Array()) =
@@ -57,13 +57,15 @@ class Forecast(apiKey: String, lat: String, lon: String, units: String, date: Da
 
     val s = new Scanner(u.openStream(), "UTF-8")
     try {
-      s.useDelimiter("\\A").next().asJson
+      s.useDelimiter("\\A").next().parseJson
     } catch {
       case e: Exception => throw new Exception(e.getMessage)
     } finally {
       s.close()
     }
   }
+
+  def raw: JsObject = forecastJson
 
   def latitude: String = lat
 
@@ -74,35 +76,35 @@ class Forecast(apiKey: String, lat: String, lon: String, units: String, date: Da
   def time: Int = { date.getTime / 1000 }.asInstanceOf[Int]
 
   def timezone: String = {
-    forecastJson.getFields("timezone")(0).convertTo[String]
+    forecastJson.getFields("timezone").head.convertTo[String]
   }
 
   def offset: Int = {
-    forecastJson.getFields("offset")(0).convertTo[Int]
+    forecastJson.getFields("offset").head.convertTo[Int]
   }
 
   def currently: CurrentDataPoint = {
-    forecastJson.getFields("currently")(0).convertTo[CurrentDataPoint]
+    forecastJson.getFields("currently").head.convertTo[CurrentDataPoint]
   }
 
   def minutely: Minutely = {
-    forecastJson.getFields("minutely")(0).convertTo[Minutely]
+    forecastJson.getFields("minutely").head.convertTo[Minutely]
   }
 
   def hourly: Hourly = {
-    forecastJson.getFields("hourly")(0).convertTo[Hourly]
+    forecastJson.getFields("hourly").head.convertTo[Hourly]
   }
 
   def flags: Flags = {
     // Use separate json parser until Case Class limit is lifted
-    val jsonString = forecastJson.getFields("flags")(0).toJson.toString()
+    val jsonString = forecastJson.getFields("flags").head.toJson.toString()
     val json = JsonObject.readFrom(jsonString)
     new Flags(json)
   }
 
   def daily: Daily = {
     // Use separate json parser until Case Class limit is lifted
-    val jsonString = forecastJson.getFields("daily")(0).toJson.toString()
+    val jsonString = forecastJson.getFields("daily").head.toJson.toString()
     val json = JsonObject.readFrom(jsonString)
     new Daily(json)
   }
@@ -111,7 +113,7 @@ class Forecast(apiKey: String, lat: String, lon: String, units: String, date: Da
     val size = forecastJson.getFields("alerts").size
     if(size == 0) return Array()
 
-    val a = forecastJson.getFields("alerts")(0).convertTo[Alerts]
+    val a = forecastJson.getFields("alerts").head.convertTo[Alerts]
     a.alerts
   }
 
